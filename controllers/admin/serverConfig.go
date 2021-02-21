@@ -6,6 +6,7 @@ import (
 
 	"github.com/owncast/owncast/config"
 	"github.com/owncast/owncast/core/data"
+	"github.com/owncast/owncast/core/transcoder"
 	"github.com/owncast/owncast/models"
 	"github.com/owncast/owncast/utils"
 	log "github.com/sirupsen/logrus"
@@ -13,6 +14,8 @@ import (
 
 // GetServerConfig gets the config details of the server.
 func GetServerConfig(w http.ResponseWriter, r *http.Request) {
+	ffmpeg := utils.ValidatedFfmpegPath(data.GetFfMpegPath())
+
 	var videoQualityVariants = make([]models.StreamOutputVariant, 0)
 	for _, variant := range data.GetStreamOutputVariants() {
 		videoQualityVariants = append(videoQualityVariants, models.StreamOutputVariant{
@@ -36,7 +39,7 @@ func GetServerConfig(w http.ResponseWriter, r *http.Request) {
 			SocialHandles:    data.GetSocialHandles(),
 			NSFW:             data.GetNSFW(),
 		},
-		FFmpegPath:     utils.ValidatedFfmpegPath(data.GetFfMpegPath()),
+		FFmpegPath:     ffmpeg,
 		StreamKey:      data.GetStreamKey(),
 		WebServerPort:  config.WebServerPort,
 		RTMPServerPort: data.GetRTMPPortNumber(),
@@ -48,7 +51,8 @@ func GetServerConfig(w http.ResponseWriter, r *http.Request) {
 			Enabled:     data.GetDirectoryEnabled(),
 			InstanceURL: data.GetServerURL(),
 		},
-		S3: data.GetS3Config(),
+		S3:              data.GetS3Config(),
+		SupportedCodecs: transcoder.GetCodecs(ffmpeg),
 	}
 
 	w.Header().Set("Content-Type", "application/json")
@@ -68,6 +72,7 @@ type serverConfigAdminResponse struct {
 	VideoSettings   videoSettings     `json:"videoSettings"`
 	LatencyLevel    int               `json:"latencyLevel"`
 	YP              yp                `json:"yp"`
+	SupportedCodecs []string          `json:"supportedCodecs"`
 }
 
 type videoSettings struct {
