@@ -135,6 +135,9 @@ func (s *server) Listen() {
 		case c := <-s.delCh:
 			s.removeClient(c)
 		case msg := <-s.sendAllCh:
+			if data.GetChatDisabled() {
+				break
+			}
 			// message was received from a client and should be sanitized, validated
 			// and distributed to other clients.
 			//
