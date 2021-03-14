@@ -71,7 +71,7 @@ export default class App extends Component {
       windowHeight: window.innerHeight,
       orientation: getOrientation(this.hasTouchScreen),
 
-      externalActionModalUrl: null,
+      externalAction: null,
     };
 
     // timers
@@ -395,15 +395,29 @@ export default class App extends Component {
     }
   }
 
-  displayExternalAction() {
+  displayExternalAction(event) {
+    const index = event.target.getAttribute('data-index');
+    const action = this.state.configData.externalActions[index];
+
+    let url = new URL(action.url);
+    // Append url and username to params so the link knows where we came from and who we are. 
+    url.searchParams.append('username', this.state.username);
+    url.searchParams.append('instance', window.location);
+
+    if (action.openExternally) {
+      var win = window.open(url.toString(), '_blank');
+      win.focus();
+      return;
+    }
+
     this.setState({
-      externalActionModalUrl: 'https://owncast-example-tip-jar.glitch.me/'
+      externalAction: action,
     });
   }
 
   closeExternalActionModal() {
     this.setState({
-      externalActionModalUrl: null
+      externalAction: null
     });
   }
 
@@ -424,7 +438,7 @@ export default class App extends Component {
       websocket,
       windowHeight,
       windowWidth,
-      externalActionModalUrl,
+      externalAction,
     } = state;
 
 
@@ -436,6 +450,7 @@ export default class App extends Component {
       tags = [],
       name,
       extraPageContent,
+      externalActions,
     } = configData;
 
     const bgUserLogo = { backgroundImage: `url(${logo})` };
@@ -476,7 +491,11 @@ export default class App extends Component {
       <${VideoPoster} offlineImage=${logo} active=${streamOnline} />
     `;
 
-    const externalActionModal = externalActionModalUrl ? html`<${ExternalActionModal} title="Test Title" url=${this.state.externalActionModalUrl} onClose=${this.closeExternalActionModal} />` : null;
+    const externalActionButtons = externalActions && externalActions.map(function(action, index) {
+      return html`<button data-index=${index} onClick=${this.displayExternalAction}>${action.title}</button>`
+    }.bind(this));
+
+    const externalActionModal = externalAction ? html`<${ExternalActionModal} title=${this.state.externalAction.description || this.state.externalAction.title} url=${this.state.externalAction.url} onClose=${this.closeExternalActionModal} />` : null;
 
     return html`
       <div
@@ -573,7 +592,7 @@ export default class App extends Component {
                 dangerouslySetInnerHTML=${{ __html: summary }}
               ></div>
               <div>
-                <button onClick=${this.displayExternalAction}>External action</button>
+                ${externalActionButtons}
               </div>
               <ul id="tag-list" class="tag-list flex flex-row flex-wrap my-4">
                 ${tagList}
